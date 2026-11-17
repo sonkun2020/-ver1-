@@ -1,6 +1,6 @@
 const SS = SpreadsheetApp.getActiveSpreadsheet();
 
-// ★管理者パスワード（ここを書き換えるだけでいつでも変更できます）
+// ★管理者用(新要素の確かめ等用)
 const ADMIN_PASSWORD = '1111';
 
 const ALL_ROLES = new Array(
