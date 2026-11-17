@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    body { margin: 0; background: #e6e9ef; color: #333c4e; }
+    .neu-box { background: #e6e9ef; border-radius: 18px; box-shadow: 6px 6px 14px #c5c9d1, -6px -6px 14px #ffffff; padding: 18px; }
+    .neu-inset { background: #e6e9ef; border-radius: 12px; box-shadow: inset 4px 4px 8px #c5c9d1, inset -4px -4px 8px #ffffff; border: none; padding: 12px 14px; outline: none; color: #333; font-size: 14px; width: 100%; }
+    .btn-primary { background: linear-gradient(135deg, #5a67d8, #4c51bf); color: #fff; border: none; border-radius: 12px; padding: 12px 18px; font-weight: bold; cursor: pointer; box-shadow: 4px 4px 10px #c5c9d1; }
+    .btn-sub { background: #e6e9ef; color: #333c4e; border: none; border-radius: 10px; padding: 8px 12px; font-weight: bold; cursor: pointer; box-shadow: 3px 3px 6px #c5c9d1, -3px -3px 6px #ffffff; font-size: 13px; }
+    .btn-warn { background: #ed8936; color: #fff; border: none; border-radius: 10px; padding: 8px 14px; font-weight: bold; cursor: pointer; }
+    .btn-danger { background: #e53e3e; color: #fff; border: none; border-radius: 10px; padding: 8px 12px; font-weight: bold; cursor: pointer; font-size: 12px; }
+    #lobbyView { max-width: 400px; margin: 40px auto; text-align: center; padding: 0 16px; }
+    .logo-icon { width: 64px; height: 64px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-radius: 18px; box-shadow: 5px 5px 12px #c5c9d1, -5px -5px 12px #ffffff; }
+    .tab-switch { display: flex; background: #dce0e8; border-radius: 12px; padding: 4px; margin-bottom: 18px; box-shadow: inset 2px 2px 5px #c5c9d1; }
+    .tab-btn { flex: 1; padding: 10px; border: none; border-radius: 10px; background: transparent; font-weight: bold; color: #666; cursor: pointer; }
+    .tab-btn.active { background: #e6e9ef; color: #333; box-shadow: 3px 3px 6px #c5c9d1; }
+    #gameView { display: none; height: 100vh; flex-direction: column; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #e6e9ef; border-bottom: 1px solid #d1d5de; flex-wrap: wrap; gap: 8px; }
+    .main-grid { display: flex; flex: 1; gap: 16px; padding: 16px; overflow: hidden; }
+    .left-col { width: 300px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+    .right-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .p-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; margin-top: 6px; box-shadow: inset 2px 2px 5px #c5c9d1, inset -2px -2px 5px #ffffff; }
+    .p-item.dead { opacity: 0.45; text-decoration: line-through; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: #cbd5e0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; }
+    .chat-area { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .sys-pill { align-self: center; background: #e6e9ef; padding: 6px 16px; border-radius: 20px; font-size: 12px; color: #555; box-shadow: 3px 3px 6px #c5c9d1, -3px -3px 6px #ffffff; }
+    .bubble { background: #fff; padding: 8px 14px; border-radius: 14px; max-width: 80%; font-size: 14px; box-shadow: 2px 2px 6px #d1d5de; }
+    .bubble.WOLF { background: #fed7d7; color: #9b2c2c; }
+    .bubble.PRIVATE { background: #c6f6d5; color: #22543d; font-weight: bold; }
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); align-items: center; justify-content: center; z-index: 99; }
+    .modal-card { background: #e6e9ef; width: 92%; max-width: 620px; max-height: 85vh; overflow-y: auto; border-radius: 18px; padding: 20px; }
+    .role-row { background: #fff; padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+    @media (max-width: 700px) { .main-grid { flex-direction: column; overflow-y: auto; } .left-col { width: 100%; } }
+  </style>
+</head>
+<body>
+<!-- 1. トップ画面（闇鍋） -->
+<div id="lobbyView">
+  <div class="logo-icon">🍲</div>
+  <div style="font-weight:bold; font-size:15px;">オンライン人狼</div>
+  <div style="font-weight:900; font-size:32px; color:#5a67d8; margin:4px 0;">闇鍋</div>
+  <div style="font-size:12px; color:#718096; margin-bottom:24px;">何が入るか分からない、混沌の夜。</div>
+
+  <div class="neu-box" style="text-align:left;">
+    <div class="tab-switch">
+      <button id="tabCreate" class="tab-btn active" onclick="switchLobbyTab('create')">ルームを作る</button>
+      <button id="tabJoin" class="tab-btn" onclick="switchLobbyTab('join')">ルームに入る</button>
+    </div>
+
+    <div id="createFields">
+      <label style="font-size:12px; font-weight:bold;">ルーム名</label>
+      <input id="inRoomName" class="neu-inset" style="margin:6px 0 14px;" placeholder="金曜夜の闇鍋村">
+    </div>
+    <div id="joinFields" style="display:none;">
+      <label style="font-size:12px; font-weight:bold;">ルームID</label>
+      <input id="inRoomId" class="neu-inset" style="margin:6px 0 14px;" placeholder="例: LM46S4">
+    </div>
+
+    <label style="font-size:12px; font-weight:bold;">あなたの名前（匿名ニックネーム）</label>
+    <input id="inNick" class="neu-inset" style="margin:6px 0 18px;" placeholder="ニックネーム">
+
+    <button id="submitLobbyBtn" class="btn-primary" style="width:100%;" onclick="submitLobby()">ルームを作成</button>
+  </div>
+</div>
+
+<!-- 2. メインゲーム画面 -->
+<div id="gameView">
+  <div class="topbar">
+    <div>
+      <b id="topRoomName">闇鍋ルーム</b>
+      <span id="topPhaseBadge" style="background:#5a67d8; color:#fff; padding:3px 10px; border-radius:12px; font-size:12px; margin-left:8px;">開始待ち</span>
+      <span id="myRoleBadge" style="font-weight:bold; color:#e53e3e; margin-left:8px; font-size:13px;"></span>
+    </div>
+    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+      <button class="btn-sub" onclick="toggleModal('roleModal', true)">📖 全役職説明</button>
+      <button class="btn-sub" onclick="openAdmin()">🔧 管理者</button>
+      <button id="btnStart" class="btn-primary" style="padding:7px 12px; font-size:12px;" onclick="doStart()">ゲーム開始</button>
+      <button id="btnNext" class="btn-sub" style="display:none;" onclick="doAdvance()">投票へ進む</button>
+      <button class="btn-sub" onclick="doReset()">🔄 村リセット</button>
+      <button class="btn-danger" onclick="backToTop()">🚪 トップへ戻る</button>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="left-col">
+      <div class="neu-box">
+        <div style="font-size:11px; color:#718096;">ルームID</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+          <b id="dispRoomId" style="font-size:22px; letter-spacing:2px;">------</b>
+          <button class="btn-sub" onclick="copyId()">コピー</button>
+        </div>
+        <div style="font-size:11px; color:#718096; margin-top:6px;">このIDを伝えると仲間が入室できます。</div>
+      </div>
+
+      <div class="neu-box">
+        <div style="font-size:12px; font-weight:bold;">参加者 <span id="pCount">0</span> / 12</div>
+        <div id="pList"></div>
+      </div>
+
+      <div class="neu-box">
+        <div style="font-size:12px; font-weight:bold;">配役プレビュー（闇鍋比率）</div>
+        <div id="ratioInfo" style="font-size:12px; color:#718096; margin-top:6px;">あと数人で開始できます</div>
+      </div>
+    </div>
+
+    <div class="right-col neu-box" style="padding:12px;">
+      <div style="display:flex; gap:8px; border-bottom:1px solid #d1d5de; padding-bottom:8px;">
+        <button class="btn-sub" onclick="setChatFilter('ALL')">全体</button>
+        <button class="btn-sub" onclick="setChatFilter('SYSTEM')">ログ</button>
+        <button id="wolfTabBtn" class="btn-sub" style="display:none; color:#c53030;" onclick="setChatFilter('WOLF')">人狼チャット</button>
+      </div>
+
+      <div id="daySkillBox" style="display:none; background:#fed7e2; padding:8px; border-radius:10px; margin-top:8px; gap:6px; flex-wrap:wrap; align-items:center;">
+        <select id="skillTarget" class="neu-inset" style="width:auto; padding:6px;"></select>
+        <select id="guessRoleSel" class="neu-inset" style="width:auto; padding:6px; display:none;"></select>
+        <button id="btnGuess" class="btn-warn" style="display:none;" onclick="doGuess()">🎯 役職狙撃</button>
+        <button id="btnProsecute" class="btn-warn" style="display:none;" onclick="doProsecute()">⚖️ 強制追放</button>
+      </div>
+
+      <div id="actBox" style="display:none; background:#bee3f8; padding:8px; border-radius:10px; margin-top:8px; gap:8px; align-items:center;">
+        <span id="actLabel" style="font-size:12px; font-weight:bold;">対象選択:</span>
+        <select id="tSel" class="neu-inset" style="width:auto; flex:1; padding:6px;"></select>
+        <button class="btn-primary" style="padding:7px 14px;" onclick="doAct()">決定</button>
+      </div>
+
+      <div id="chatArea" class="chat-area"></div>
+
+      <div style="display:flex; gap:8px; align-items:center; padding-top:8px;">
+        <select id="chSel" class="neu-inset" style="width:auto; padding:10px;">
+          <option value="ALL">全体</option>
+          <option value="WOLF">人狼</option>
+        </select>
+        <select id="disguiseSel" class="neu-inset" style="width:auto; padding:10px; display:none;"></select>
+        <input id="chatIn" class="neu-inset" placeholder="メッセージを入力" onkeypress="if(event.key==='Enter') doSend()">
+        <button class="btn-primary" onclick="doSend()">送信</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 役職図鑑モーダル -->
+<div id="roleModal" class="modal-bg" onclick="if(event.target===this) toggleModal('roleModal', false)">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <b>📖 闇鍋・全役職一覧（プレイ中閲覧可）</b>
+      <button class="btn-sub" onclick="toggleModal('roleModal', false)">閉じる</button>
+    </div>
+    <div id="roleBookList"></div>
+  </div>
+</div>
+
+<!-- 管理者テストパネルモーダル -->
+<div id="adminModal" class="modal-bg" onclick="if(event.target===this) toggleModal('adminModal', false)">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <b>🔧 管理者デバッグ・役職動作確認パネル</b>
+      <button class="btn-sub" onclick="toggleModal('adminModal', false)">閉じる</button>
+    </div>
+
+    <div style="background:#fff; padding:12px; border-radius:12px; margin-bottom:12px;">
+      <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">① テスト進行コントロール</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-sub" onclick="adminBot()">🤖 テストBotを4人追加</button>
+        <button class="btn-warn" onclick="adminNext()">⏭ フェーズ強制進行（昼→投票→夜→朝）</button>
+      </div>
+    </div>
+
+    <div style="background:#fff; padding:12px; border-radius:12px; margin-bottom:12px;">
+      <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">② 任意プレイヤーの役職を強制変更（能力テスト用）</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <select id="admPlayerSel" class="neu-inset" style="width:auto; padding:8px;"></select>
+        <select id="admRoleSel" class="neu-inset" style="width:auto; padding:8px;"></select>
+        <button class="btn-primary" style="padding:8px 14px;" onclick="adminChangeRole()">役職を変更</button>
+      </div>
+    </div>
+
+    <div style="background:#fff; padding:12px; border-radius:12px;">
+      <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">③ 全参加者の配役・生存・行動状況（透視）</div>
+      <div id="admPlayerTable" style="font-size:13px;"></div>
+    </div>
+  </div>
+</div>
+<script>
+  let uid = localStorage.getItem('yaminabe_uid') || ('u_' + Math.random().toString(36).substr(2, 9));
+  localStorage.setItem('yaminabe_uid', uid);
+  let currentRoomId = localStorage.getItem('yaminabe_room') || '';
+  let adminPass = sessionStorage.getItem('yaminabe_admin') || '';
+  let lobbyMode = 'create', chatFilter = 'ALL', cachedRoles = [], cachedPlayers = [];
+
+  function switchLobbyTab(mode) {
+    lobbyMode = mode;
+    document.getElementById('tabCreate').classList.toggle('active', mode === 'create');
+    document.getElementById('tabJoin').classList.toggle('active', mode === 'join');
+    document.getElementById('createFields').style.display = mode === 'create' ? 'block' : 'none';
+    document.getElementById('joinFields').style.display = mode === 'join' ? 'block' : 'none';
+    document.getElementById('submitLobbyBtn').innerText = mode === 'create' ? 'ルームを作成' : 'ルームに入室';
+  }
+
+  function submitLobby() {
+    const nick = document.getElementById('inNick').value.trim();
+    if (!nick) return alert('ニックネームを入力してください');
+    if (lobbyMode === 'create') {
+      const rName = document.getElementById('inRoomName').value.trim();
+      google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(res => enterRoom(res.roomId)).createRoom(uid, nick, rName);
+    } else {
+      const rId = document.getElementById('inRoomId').value.trim();
+      if (!rId) return alert('ルームIDを入力してください');
+      google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(res => enterRoom(res.roomId)).joinRoom(uid, nick, rId);
+    }
+  }
+
+  function enterRoom(rId) {
+    currentRoomId = rId;
+    localStorage.setItem('yaminabe_room', rId);
+    document.getElementById('lobbyView').style.display = 'none';
+    document.getElementById('gameView').style.display = 'flex';
+    refresh();
+  }
+
+  function backToTop() {
+    if (!confirm('ルームを退出して最初の画面に戻りますか？')) return;
+    const oldRoom = currentRoomId;
+    currentRoomId = '';
+    localStorage.removeItem('yaminabe_room');
+    document.getElementById('gameView').style.display = 'none';
+    document.getElementById('lobbyView').style.display = 'block';
+    if (oldRoom) google.script.run.leaveRoom(oldRoom, uid);
+  }
+
+  function refresh() {
+    if (currentRoomId) google.script.run.withSuccessHandler(render).getRoomState(currentRoomId, uid, adminPass);
+  }
+  function render(data) {
+    if (!data || data.error) {
+      currentRoomId = ''; localStorage.removeItem('yaminabe_room');
+      document.getElementById('gameView').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'block';
+      return;
+    }
+    const { room, players, me, messages, allRoles } = data;
+    cachedRoles = allRoles || []; cachedPlayers = players || [];
+
+    document.getElementById('topRoomName').innerText = room.roomName;
+    document.getElementById('dispRoomId').innerText = room.roomId;
+    const pMap = { LOBBY: '開始待ち', DAY: `${room.day}日目・昼`, VOTE: `${room.day}日目・投票`, NIGHT: `${room.day}日目・夜`, END: '決着' };
+    document.getElementById('topPhaseBadge').innerText = pMap[room.phase] || room.phase;
+
+    if (me && me.role) {
+      let rTxt = `あなた: ${me.role}`;
+      if (me.ability === 'jekyll') rTxt += (room.day % 2 === 1) ? '（現在:ジキル）' : '（現在:ハイド）';
+      document.getElementById('myRoleBadge').innerText = rTxt;
+    } else { document.getElementById('myRoleBadge').innerText = ''; }
+
+    document.getElementById('btnStart').style.display = room.phase === 'LOBBY' ? 'inline-block' : 'none';
+    document.getElementById('btnNext').style.display = room.phase === 'DAY' ? 'inline-block' : 'none';
+    document.getElementById('wolfTabBtn').style.display = (me && me.team === '人狼') ? 'inline-block' : 'none';
+
+    document.getElementById('pCount').innerText = players.length;
+    document.getElementById('pList').innerHTML = players.map(p =>
+      `<div class="p-item ${p.alive ? '' : 'dead'}"><div class="avatar">${p.name.slice(0, 1)}</div>
+      <div style="flex:1;font-size:13px;"><b>${esc(p.name)}</b> ${p.isHost ? '<span style="font-size:10px;background:#cbd5e0;padding:2px 5px;border-radius:6px;">主</span>' : ''}<br><span style="font-size:11px;color:#666;">${p.role}</span></div><div>${p.voted ? '✅' : ''}</div></div>`
+    ).join('');
+
+    const rTxt = { 5: '市民3 : 人狼1 : 第三1', 6: '市民4 : 人狼1 : 第三1', 7: '市民4 : 人狼2 : 第三1', 8: '市民5 : 人狼2 : 第三1', 9: '市民5 : 人狼2 : 第三2' };
+    document.getElementById('ratioInfo').innerText = players.length < 5 ? `あと${5 - players.length}人で開始できます` : (rTxt[players.length] || 'ランダム（人狼1〜・第三1〜保証）');
+    renderControlsAndChat(room, players, me, messages);
+  }
+  function renderControlsAndChat(room, players, me, messages) {
+    const dayBox = document.getElementById('daySkillBox');
+    const canGuess = me && me.alive && room.phase === 'DAY' && ['nice_guesser', 'evil_guesser'].includes(me.ability) && !me.extra.includes('GUESSED_' + room.day);
+    const canPros = me && me.alive && room.phase === 'DAY' && me.ability === 'prosecutor' && !me.extra.includes('PROSECUTED');
+    if (canGuess || canPros) {
+      dayBox.style.display = 'flex';
+      const sT = document.getElementById('skillTarget'), curT = sT.value;
+      sT.innerHTML = players.filter(p => p.alive && p.id !== uid).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+      if (curT) sT.value = curT;
+      const gR = document.getElementById('guessRoleSel'), curR = gR.value;
+      gR.innerHTML = cachedRoles.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+      if (curR) gR.value = curR;
+      gR.style.display = canGuess ? 'inline-block' : 'none';
+      document.getElementById('btnGuess').style.display = canGuess ? 'inline-block' : 'none';
+      document.getElementById('btnProsecute').style.display = canPros ? 'inline-block' : 'none';
+    } else { dayBox.style.display = 'none'; }
+
+    const dSel = document.getElementById('disguiseSel');
+    if (me && me.alive && me.ability === 'shifter' && room.phase === 'DAY') {
+      dSel.style.display = 'inline-block'; const curD = dSel.value;
+      dSel.innerHTML = `<option value="">変装なし(${esc(me.name)})</option>` + players.filter(p => p.alive && p.id !== uid).map(p => `<option value="${esc(p.name)}">変装:${esc(p.name)}</option>`).join('');
+      if (curD) dSel.value = curD;
+    } else { dSel.style.display = 'none'; }
+
+    const canVote = room.phase === 'VOTE' && me && me.alive && !me.voted;
+    const noNight = ['none', 'noisemaker', 'jester', 'nice_guesser', 'mayor', 'prosecutor', 'onmyoji'];
+    const canNight = room.phase === 'NIGHT' && me && !me.voted && ((me.ability === 'angel' && !me.alive) || (me.ability === 'jekyll' && me.alive && room.day % 2 === 0) || (me.alive && !noNight.includes(me.ability) && me.ability !== 'jekyll'));
+    const actBox = document.getElementById('actBox');
+    if (canVote || canNight) {
+      actBox.style.display = 'flex'; document.getElementById('actLabel').innerText = canVote ? '追放投票:' : '夜アクション:';
+      const tSel = document.getElementById('tSel'), curA = tSel.value;
+      let opts = players.filter(p => p.alive && p.id !== uid).map(p => `<option value="${p.id}">${esc(p.name)}</option>`);
+      if (canNight && me.ability === 'engineer') opts.unshift('<option value="VENT">ダクト潜伏（人狼チャット盗聴）</option>');
+      tSel.innerHTML = opts.join(''); if (curA) tSel.value = curA;
+    } else { actBox.style.display = 'none'; }
+
+    const area = document.getElementById('chatArea'), isBtm = area.scrollHeight - area.scrollTop <= area.clientHeight + 50;
+    area.innerHTML = messages.filter(m => chatFilter === 'ALL' ? true : m.channel === chatFilter).map(m =>
+      m.channel === 'SYSTEM' ? `<div class="sys-pill">${esc(m.text)}</div>` : `<div class="bubble ${m.channel === uid ? 'PRIVATE' : m.channel}"><div style="font-size:11px;color:#666;">${esc(m.sender)} ・ ${m.time}</div><div>${esc(m.text)}</div></div>`
+    ).join('');
+    if (isBtm) area.scrollTop = area.scrollHeight;
+    if (document.getElementById('adminModal').style.display === 'flex') renderAdminPanel();
+  }
+  function openAdmin() {
+    if (!adminPass) {
+      const inp = prompt('管理者パスワードを入力してください:');
+      if (!inp) return;
+      google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(() => {
+        adminPass = inp; sessionStorage.setItem('yaminabe_admin', inp); toggleModal('adminModal', true); refresh();
+      }).verifyAdminPass(inp);
+    } else { toggleModal('adminModal', true); refresh(); }
+  }
+  function renderAdminPanel() {
+    document.getElementById('admPlayerSel').innerHTML = cachedPlayers.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    document.getElementById('admRoleSel').innerHTML = cachedRoles.map(r => `<option value="${r.name}">${r.name}（${r.team}）</option>`).join('');
+    document.getElementById('admPlayerTable').innerHTML = cachedPlayers.map(p => `<div style="padding:6px 0;border-bottom:1px solid #eee;"><b>${esc(p.name)}</b> ：【${p.role || '未配布'}】 / ${p.alive ? '生存' : '死亡'} / ${p.voted ? '行動済' : '未行動'}</div>`).join('');
+  }
+  function adminBot() { google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(refresh).adminAddBots(currentRoomId, adminPass, 4); }
+  function adminNext() { google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(refresh).adminForceNext(currentRoomId, adminPass); }
+  function adminChangeRole() { google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(refresh).adminSetRole(currentRoomId, adminPass, document.getElementById('admPlayerSel').value, document.getElementById('admRoleSel').value); }
+
+  function doSend() {
+    const inp = document.getElementById('chatIn'), txt = inp.value.trim();
+    if (!txt) return;
+    inp.value = '';
+    const area = document.getElementById('chatArea');
+    area.innerHTML += `<div class="bubble"><div style="font-size:11px;color:#666;">送信中...</div><div>${esc(txt)}</div></div>`;
+    area.scrollTop = area.scrollHeight;
+    google.script.run.withSuccessHandler(refresh).sendChat(currentRoomId, uid, document.getElementById('chSel').value, txt, document.getElementById('disguiseSel').value);
+  }
+  function doStart() { google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(refresh).startGame(currentRoomId); }
+  function doAdvance() { google.script.run.withSuccessHandler(refresh).advancePhaseManual(currentRoomId); }
+  function doReset() { if (confirm('チャットと役職をリセットしてロビー状態に戻しますか？')) google.script.run.withSuccessHandler(refresh).resetVillage(currentRoomId); }
+  function doAct() { google.script.run.withSuccessHandler(refresh).submitAction(currentRoomId, uid, document.getElementById('tSel').value); }
+  function doGuess() {
+    const tid = document.getElementById('skillTarget').value, role = document.getElementById('guessRoleSel').value;
+    if (confirm(`「${role}」として狙撃しますか？（外すと自爆します）`)) google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(refresh).guessRole(currentRoomId, uid, tid, role);
+  }
+  function doProsecute() {
+    if (confirm('このプレイヤーを強制追放しますか？（1ゲーム1回）')) google.script.run.withFailureHandler(e => alert(e.message)).withSuccessHandler(refresh).prosecutePlayer(currentRoomId, uid, document.getElementById('skillTarget').value);
+  }
+  function setChatFilter(f) { chatFilter = f; refresh(); }
+  function copyId() { navigator.clipboard.writeText(currentRoomId); alert('ルームIDをコピーしました: ' + currentRoomId); }
+  function toggleModal(id, show) {
+    document.getElementById(id).style.display = show ? 'flex' : 'none';
+    if (id === 'roleModal' && show) document.getElementById('roleBookList').innerHTML = cachedRoles.map(r => `<div class="role-row"><b>${r.name}</b> <span style="font-size:11px;padding:2px 6px;border-radius:6px;background:#edf2f7;">${r.team}陣営</span><div style="margin-top:4px;color:#555;">${r.desc}</div></div>`).join('');
+    if (id === 'adminModal' && show) renderAdminPanel();
+  }
+  function esc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  if (currentRoomId) enterRoom(currentRoomId);
+  setInterval(refresh, 3000);
+</script>
+</body>
+</html>
